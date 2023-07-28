@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html ng-app="myApp">
+
+<head>
+    <title>AngularJS Excel to JSON Example</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+</head>
+
+<style>
+   #customers {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#customers td, #customers th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#customers tr:nth-child(even){background-color: #f2f2f2;}
+
+#customers tr:hover {background-color: #ddd;}
+
+#customers th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #04AA6D;
+  color: white;
+}
+</style>
+
+<body ng-controller="MyController">
+
+    <h1>ANHVUX</h1>
+
+    <input type="text" class="form-control" ng-model="searchKeyword" placeholder="NHẬP CÂU HỎI VÀ BẤM DẤU CÁCH ĐỂ TIM ĐÁP ÁN..." style="width: 70%;"/>
+<br>
+    <table id="customers">
+        <thead>
+            <!-- Phần thead tương tự như trước -->
+        </thead>
+        
+        
+        <tbody>
+            <tr>
+
+                <th>mã</th>
+                <th>câu hỏi</th>
+                <th>đáp an</th>
+                
+
+            </tr>
+            <tr ng-repeat="item in jsonData | filter: customFilter">
+                <td>{{ item.MA }}</td>
+                <td>{{ item.CAU_HOI }}</td>
+               
+                <td>{{ item.DAP_AN }}</td>
+              
+            </tr>
+        </tbody>
+        
+    </table>
+
+    <script>
+        var app = angular.module('myApp', []);
+
+        app.controller('MyController', function ($scope) {
+            $scope.jsonData = [];
+
+            // Sử dụng axios để load dữ liệu từ file Excel trên máy chủ và gán vào biến $scope.jsonData
+            axios.get('dapanpl.xlsx', { responseType: 'arraybuffer' })
+                .then(function (response) {
+                    var data = new Uint8Array(response.data);
+                    var workbook = XLSX.read(data, { type: 'array' });
+                    var sheetName = workbook.SheetNames[0];
+                    var sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    $scope.$apply(function () {
+                        $scope.jsonData = sheetData;
+                        console.log($scope.jsonData)
+                    });
+                })
+                .catch(function (error) {
+                    console.log('Error loading Excel file:', error);
+                });
+
+            // Hàm lọc dữ liệu dựa trên từ khóa tìm kiếm
+            $scope.customFilter = function (item) {
+                if (!$scope.searchKeyword || $scope.searchKeyword.trim() === '') {
+                    return true;
+                }
+
+                var keyword = $scope.searchKeyword.toLowerCase();
+
+                // Check if the "MA" code matches the search keyword
+                var maMatched = item.MA && item.MA.toString().toLowerCase().indexOf(keyword) !== -1;
+
+                return (
+                    maMatched ||
+                    (item.CAU_HOI && item.CAU_HOI.toString().toLowerCase().indexOf(keyword) !== -1) ||
+                    (item.TRA_LOI && item.TRA_LOI.toString().toLowerCase().indexOf(keyword) !== -1) ||
+                    (item.DAP_AN && item.DAP_AN.toString().toLowerCase().indexOf(keyword) !== -1) ||
+                    (item.ABC && item.ABC.toString().toLowerCase().indexOf(keyword) !== -1)
+                );
+            };
+
+            // Custom filter to filter out empty answers
+            $scope.answerFilter = function (value) {
+                return value.trim() !== '';
+            };
+        });
+    </script>
+</body>
+
+</html>
